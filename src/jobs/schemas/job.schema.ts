@@ -10,6 +10,8 @@ export interface ParsedJD {
     employmentType: string | null;
 }
 
+export type JobSource = 'company_website' | 'google_jobs';
+
 @Schema({ timestamps: true })
 export class Job extends Document {
     @Prop({ required: true })
@@ -17,6 +19,18 @@ export class Job extends Document {
 
     @Prop({ type: Object, required: true })
     parsedJD: ParsedJD;
+
+    @Prop()
+    companyName: string;
+
+    @Prop()
+    applyUrl: string;
+
+    @Prop({ type: String, enum: ['company_website', 'google_jobs'] })
+    source: JobSource;
+
+    @Prop({ unique: true, sparse: true })
+    jobHash: string;
 
     @Prop()
     createdAt: Date;
