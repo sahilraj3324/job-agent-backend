@@ -1,6 +1,7 @@
 import { Controller, Post, Body, Get, Param } from '@nestjs/common';
 import { ResumeParserService, ParsedResume } from '../agents/resume-parser';
 import { EmbeddingService } from '../agents/embedding';
+import { CandidatesService } from './candidates.service';
 
 export interface UploadResumeDto {
     text: string;
@@ -15,53 +16,32 @@ export interface CandidateResponse {
 
 @Controller('candidates')
 export class CandidatesController {
-    // In-memory storage for demo (replace with actual DB in production)
-    private candidates: Map<string, CandidateResponse> = new Map();
-
     constructor(
-        private readonly resumeParser: ResumeParserService,
-        private readonly embeddingService: EmbeddingService,
+        private readonly candidatesService: CandidatesService,
     ) { }
 
     @Post()
     async uploadResume(@Body() dto: UploadResumeDto): Promise<CandidateResponse> {
-        const parsedResume = await this.resumeParser.parse(dto.text);
-        const embedding = await this.embeddingService.embedCandidate(parsedResume);
-
-        const candidate: CandidateResponse = {
-            id: this.generateId(),
-            rawResume: dto.text,
-            parsedResume,
-            embedding,
-        };
-
-        this.candidates.set(candidate.id, candidate);
-        return candidate;
+        return this.candidatesService.createCandidate(dto.text);
     }
 
     @Get()
     async getAllCandidates(): Promise<Omit<CandidateResponse, 'embedding'>[]> {
-        return Array.from(this.candidates.values()).map(({ embedding, ...rest }) => rest);
+        return this.candidatesService.getAllCandidates();
     }
 
     @Get(':id')
     async getCandidate(@Param('id') id: string): Promise<CandidateResponse | null> {
-        return this.candidates.get(id) || null;
+        return this.candidatesService.getCandidate(id) || null;
     }
 
-    // Expose candidates with embeddings for matching service
+    // This method might be removed from controller if only used internally by MatchController via Service
+    // But keeping it if it's external API. However, MatchController should use Service.
     getCandidatesWithEmbeddings(): { id: string; embedding: number[] }[] {
-        return Array.from(this.candidates.values()).map((c) => ({
-            id: c.id,
-            embedding: c.embedding,
-        }));
+        return this.candidatesService.getCandidatesWithEmbeddings();
     }
 
     getCandidateById(id: string): CandidateResponse | undefined {
-        return this.candidates.get(id);
-    }
-
-    private generateId(): string {
-        return `cand_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        return this.candidatesService.getCandidate(id);
     }
 }

@@ -11,13 +11,13 @@ export class Company extends Document {
     @Prop({ required: true })
     homepageUrl: string;
 
-    @Prop({ default: null })
+    @Prop({ type: String, default: null })
     careerPageUrl: string | null;
 
     @Prop({ type: String, enum: ['lever', 'greenhouse', 'workday', 'ashby', 'bamboohr', 'smartrecruiters', 'other', 'unknown'], default: null })
     atsType: ATSType | null;
 
-    @Prop({ default: null })
+    @Prop({ type: Date, default: null })
     lastCheckedAt: Date | null;
 
     @Prop()

@@ -20,6 +20,9 @@ export class Job extends Document {
     @Prop({ type: Object, required: true })
     parsedJD: ParsedJD;
 
+    @Prop({ type: [Number], index: '2dsphere' }) // or just array of numbers
+    embedding: number[];
+
     @Prop()
     companyName: string;
 

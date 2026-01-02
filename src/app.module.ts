@@ -10,6 +10,8 @@ import { DatabaseModule } from './database';
 import { JobsModule } from './jobs';
 import { CandidatesModule } from './candidates';
 import { MatchModule } from './match';
+import { ScheduleModule } from '@nestjs/schedule';
+import { DiscoveryModule } from './discovery';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { MatchModule } from './match';
     JobsModule,
     CandidatesModule,
     MatchModule,
+    ScheduleModule.forRoot(),
+    DiscoveryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,7 +1,7 @@
 import { Controller, Post, Body, Param } from '@nestjs/common';
 import { MatchingService, MatchExplanationService } from '../agents/matching';
-import { JobsController } from '../jobs/jobs.controller';
-import { CandidatesController } from '../candidates/candidates.controller';
+import { JobsService } from '../jobs/jobs.service';
+import { CandidatesService } from '../candidates/candidates.service';
 
 export interface MatchRequestDto {
     jobId: string;
@@ -26,18 +26,16 @@ export class MatchController {
     constructor(
         private readonly matchingService: MatchingService,
         private readonly matchExplanation: MatchExplanationService,
-        private readonly jobsController: JobsController,
-        private readonly candidatesController: CandidatesController,
+        private readonly jobsService: JobsService,
+        private readonly candidatesService: CandidatesService,
     ) { }
 
     @Post()
     async matchCandidates(@Body() dto: MatchRequestDto): Promise<MatchResultDto[]> {
-        const job = await this.jobsController.getJob(dto.jobId);
-        if (!job) {
-            throw new Error(`Job not found: ${dto.jobId}`);
-        }
+        const job = await this.jobsService.getJob(dto.jobId);
+        // job is now the Document, so it has embedding
 
-        const candidates = this.candidatesController.getCandidatesWithEmbeddings();
+        const candidates = this.candidatesService.getCandidatesWithEmbeddings();
         if (candidates.length === 0) {
             return [];
         }
@@ -65,12 +63,9 @@ export class MatchController {
         @Param('jobId') jobId: string,
         @Param('candidateId') candidateId: string,
     ) {
-        const job = await this.jobsController.getJob(jobId);
-        if (!job) {
-            throw new Error(`Job not found: ${jobId}`);
-        }
+        const job = await this.jobsService.getJob(jobId);
 
-        const candidate = this.candidatesController.getCandidateById(candidateId);
+        const candidate = this.candidatesService.getCandidate(candidateId);
         if (!candidate) {
             throw new Error(`Candidate not found: ${candidateId}`);
         }

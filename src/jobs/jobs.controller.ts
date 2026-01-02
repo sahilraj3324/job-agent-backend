@@ -1,55 +1,63 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
-import { JDParserService, ParsedJobDescription } from '../agents/jd-parser';
+import { Controller, Post, Body, Get, Param, Query, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { JDParserService } from '../agents/jd-parser';
 import { EmbeddingService } from '../agents/embedding';
+import { Job } from './schemas/job.schema';
+import type { JobSource } from './schemas/job.schema';
+import { JobsService } from './jobs.service';
 
 export interface UploadJDDto {
     text: string;
 }
 
-export interface JobResponse {
-    id: string;
-    rawJD: string;
-    parsedJD: ParsedJobDescription;
-    embedding: number[];
-}
-
 @Controller('jobs')
 export class JobsController {
-    // In-memory storage for demo (replace with actual DB in production)
-    private jobs: Map<string, JobResponse> = new Map();
-
     constructor(
-        private readonly jdParser: JDParserService,
-        private readonly embeddingService: EmbeddingService,
+        private readonly jobsService: JobsService,
     ) { }
 
     @Post()
-    async uploadJD(@Body() dto: UploadJDDto): Promise<JobResponse> {
-        const parsedJD = await this.jdParser.parse(dto.text);
-        const embedding = await this.embeddingService.embedJob(parsedJD);
-
-        const job: JobResponse = {
-            id: this.generateId(),
-            rawJD: dto.text,
-            parsedJD,
-            embedding,
-        };
-
-        this.jobs.set(job.id, job);
-        return job;
+    async uploadJD(@Body() dto: UploadJDDto): Promise<Job> {
+        return this.jobsService.createJob(dto.text);
     }
 
     @Get()
-    async getAllJobs(): Promise<Omit<JobResponse, 'embedding'>[]> {
-        return Array.from(this.jobs.values()).map(({ embedding, ...rest }) => rest);
+    async getJobs(
+        @Query('role') role?: string,
+        @Query('location') location?: string,
+        @Query('source') source?: JobSource,
+    ): Promise<any[]> {
+        const jobs = await this.jobsService.getJobs(role, location, source);
+
+        return jobs.map((job) => ({
+            id: job._id.toString(),
+            companyName: job.companyName || 'Unknown',
+            role: job.parsedJD.role,
+            location: job.parsedJD.location,
+            skills: job.parsedJD.skills,
+            applyUrl: job.applyUrl || '#',
+            source: job.source,
+            postedAt: job.createdAt,
+        }));
     }
 
     @Get(':id')
-    async getJob(@Param('id') id: string): Promise<JobResponse | null> {
-        return this.jobs.get(id) || null;
-    }
+    async getJob(@Param('id') id: string): Promise<any> {
+        const job = await this.jobsService.getJob(id);
 
-    private generateId(): string {
-        return `job_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        return {
+            id: job._id.toString(),
+            companyName: job.companyName || 'Unknown',
+            role: job.parsedJD.role,
+            location: job.parsedJD.location,
+            skills: job.parsedJD.skills,
+            minExperience: job.parsedJD.minExperience,
+            maxExperience: job.parsedJD.maxExperience,
+            description: job.rawJD,
+            applyUrl: job.applyUrl || '#',
+            source: job.source,
+            postedAt: job.createdAt,
+        };
     }
 }
