@@ -4,11 +4,25 @@ import { AppService } from './app.service';
 import { OpenAIModule } from './openai';
 import { JDParserModule } from './agents/jd-parser';
 import { ResumeParserModule } from './agents/resume-parser';
+import { EmbeddingModule } from './agents/embedding';
+import { MatchingModule } from './agents/matching';
 import { DatabaseModule } from './database';
 import { JobsModule } from './jobs';
+import { CandidatesModule } from './candidates';
+import { MatchModule } from './match';
 
 @Module({
-  imports: [DatabaseModule, OpenAIModule, JDParserModule, ResumeParserModule, JobsModule],
+  imports: [
+    DatabaseModule,
+    OpenAIModule,
+    JDParserModule,
+    ResumeParserModule,
+    EmbeddingModule,
+    MatchingModule,
+    JobsModule,
+    CandidatesModule,
+    MatchModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
