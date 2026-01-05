@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { ScheduleModule } from '@nestjs/schedule';
 import { JDParserModule } from '../agents/jd-parser';
+import { OpenAIModule } from '../openai';
 import { JobsModule } from '../jobs';
 import { CompaniesModule } from '../companies';
 import { CareerPageDiscoveryService } from './career-page-discovery.service';
@@ -10,17 +9,19 @@ import { JobFetcherService } from './job-fetcher.service';
 import { JobNormalizationService } from './job-normalization.service';
 import { JobIngestionService } from './job-ingestion.service';
 import { DiscoveryScheduler } from './discovery.scheduler';
+import { ScraperService } from './scraper.service';
+import { LLMJobExtractorService } from './llm-job-extractor.service';
+import { UniversalIngestionService } from './universal-ingestion.service';
+import { DiscoveryController } from './discovery.controller';
 
 @Module({
     imports: [
-        MongooseModule.forFeature([]), // DiscoveryScheduler uses injected models, but they are from imported modules. 
-        // Wait, DiscoveryScheduler uses CompanyModel which is in CompaniesModule.
-        // It also uses JobIngestionService which is provided here.
-        // Modules are already imported.
         JobsModule,
         CompaniesModule,
         JDParserModule,
+        OpenAIModule,
     ],
+    controllers: [DiscoveryController],
     providers: [
         CareerPageDiscoveryService,
         ATSDetectionService,
@@ -28,10 +29,14 @@ import { DiscoveryScheduler } from './discovery.scheduler';
         JobNormalizationService,
         JobIngestionService,
         DiscoveryScheduler,
+        ScraperService,
+        LLMJobExtractorService,
+        UniversalIngestionService,
     ],
     exports: [
         JobIngestionService,
         CareerPageDiscoveryService,
+        UniversalIngestionService,
     ],
 })
 export class DiscoveryModule { }

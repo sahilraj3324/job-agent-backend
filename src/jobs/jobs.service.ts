@@ -43,7 +43,6 @@ export class JobsService {
         return this.jobModel
             .find(filter)
             .sort({ createdAt: -1 })
-            .limit(50)
             .exec();
     }
 
