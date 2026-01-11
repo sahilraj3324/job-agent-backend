@@ -32,20 +32,14 @@ export class CareerPageDiscoveryService {
 
     /**
      * Discover career page URL from company homepage
+     * Only scans homepage links - does not try common paths
      * @param homepageUrl Company homepage URL (e.g., https://example.com)
      * @returns Career page URL or null if not found
      */
     async discoverCareerPage(homepageUrl: string): Promise<string | null> {
         const baseUrl = this.normalizeUrl(homepageUrl);
 
-        // Step 1: Try common career page paths
-        const pathResult = await this.tryCommonPaths(baseUrl);
-        if (pathResult) {
-            this.logger.log(`Found career page via common path: ${pathResult}`);
-            return pathResult;
-        }
-
-        // Step 2: Fetch homepage and scan for career links
+        // Only scan homepage for career links (no common path guessing)
         const linkResult = await this.scanHomepageLinks(baseUrl);
         if (linkResult) {
             this.logger.log(`Found career page via link scan: ${linkResult}`);

@@ -12,6 +12,7 @@ import { DiscoveryScheduler } from './discovery.scheduler';
 import { ScraperService } from './scraper.service';
 import { LLMJobExtractorService } from './llm-job-extractor.service';
 import { UniversalIngestionService } from './universal-ingestion.service';
+import { CompanyDiscoveryAgent } from './company-discovery.agent';
 import { DiscoveryController } from './discovery.controller';
 
 @Module({
@@ -32,11 +33,14 @@ import { DiscoveryController } from './discovery.controller';
         ScraperService,
         LLMJobExtractorService,
         UniversalIngestionService,
+        CompanyDiscoveryAgent,
     ],
     exports: [
         JobIngestionService,
         CareerPageDiscoveryService,
         UniversalIngestionService,
+        CompanyDiscoveryAgent,
     ],
 })
 export class DiscoveryModule { }
+
