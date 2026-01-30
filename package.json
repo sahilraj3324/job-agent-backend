@@ -25,10 +25,13 @@
     "@nestjs/mongoose": "^11.0.4",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^6.1.0",
+    "@types/multer": "^2.0.0",
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
     "mongoose": "^9.1.1",
+    "multer": "^2.0.2",
     "openai": "^6.15.0",
+    "pdf-parse": "^1.1.1",
     "puppeteer": "^24.34.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"

@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { OpenAIModule } from './openai';
 import { JDParserModule } from './agents/jd-parser';
 import { ResumeParserModule } from './agents/resume-parser';
+import { ResumeAnalyzerModule } from './agents/resume-analyzer';
 import { EmbeddingModule } from './agents/embedding';
 import { MatchingModule } from './agents/matching';
 import { DatabaseModule } from './database';
@@ -20,6 +21,7 @@ import { SavedJobsModule } from './saved-jobs';
     OpenAIModule,
     JDParserModule,
     ResumeParserModule,
+    ResumeAnalyzerModule,
     EmbeddingModule,
     MatchingModule,
     JobsModule,
