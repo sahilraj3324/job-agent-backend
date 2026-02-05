@@ -1,16 +1,14 @@
-import { Controller, Post, Body, Get, Param, Query, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { JDParserService } from '../agents/jd-parser';
-import { EmbeddingService } from '../agents/embedding';
+import { Controller, Post, Body, Get, Param, Query, NotFoundException, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { Job } from './schemas/job.schema';
 import type { JobSource } from './schemas/job.schema';
 import { JobsService } from './jobs.service';
 
-export interface UploadJDDto {
+class UploadJDDto {
     text: string;
 }
 
+@ApiTags('Jobs')
 @Controller('jobs')
 export class JobsController {
     constructor(
@@ -18,11 +16,23 @@ export class JobsController {
     ) { }
 
     @Post()
+    @ApiOperation({ summary: 'Upload and parse a job description' })
+    @ApiBody({ type: UploadJDDto })
+    @ApiResponse({ status: 201, description: 'Job created successfully' })
+    @ApiResponse({ status: 400, description: 'Text is required' })
     async uploadJD(@Body() dto: UploadJDDto): Promise<Job> {
+        if (!dto || !dto.text) {
+            throw new BadRequestException('Text is required');
+        }
         return this.jobsService.createJob(dto.text);
     }
 
     @Get()
+    @ApiOperation({ summary: 'Get all jobs with optional filters' })
+    @ApiQuery({ name: 'role', required: false, description: 'Filter by role' })
+    @ApiQuery({ name: 'location', required: false, description: 'Filter by location' })
+    @ApiQuery({ name: 'source', required: false, enum: ['company_website', 'google_jobs'], description: 'Filter by source' })
+    @ApiResponse({ status: 200, description: 'Returns list of jobs' })
     async getJobs(
         @Query('role') role?: string,
         @Query('location') location?: string,
@@ -43,6 +53,10 @@ export class JobsController {
     }
 
     @Get(':id')
+    @ApiOperation({ summary: 'Get job by ID' })
+    @ApiParam({ name: 'id', description: 'Job ID' })
+    @ApiResponse({ status: 200, description: 'Returns job details' })
+    @ApiResponse({ status: 404, description: 'Job not found' })
     async getJob(@Param('id') id: string): Promise<any> {
         const job = await this.jobsService.getJob(id);
 

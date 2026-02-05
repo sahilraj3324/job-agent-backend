@@ -1,9 +1,11 @@
-import { Controller, Get, Param, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Company } from './schemas/company.schema';
 import { Job } from '../jobs/schemas/job.schema';
 
+@ApiTags('Companies')
 @Controller('companies')
 export class CompaniesController {
     constructor(
@@ -12,6 +14,8 @@ export class CompaniesController {
     ) { }
 
     @Get()
+    @ApiOperation({ summary: 'Get all companies with job counts' })
+    @ApiResponse({ status: 200, description: 'Returns list of companies' })
     async getCompanies(): Promise<any[]> {
         // Get all companies from the Companies collection with job counts
         const companies = await this.companyModel.aggregate([
@@ -57,6 +61,9 @@ export class CompaniesController {
     }
 
     @Get(':name/jobs')
+    @ApiOperation({ summary: 'Get all jobs for a specific company' })
+    @ApiParam({ name: 'name', description: 'Company name' })
+    @ApiResponse({ status: 200, description: 'Returns jobs for the company' })
     async getCompanyJobs(@Param('name') name: string): Promise<any[]> {
         const jobs = await this.jobModel
             .find({ companyName: { $regex: new RegExp(`^${decodeURIComponent(name)}$`, 'i') } })

@@ -14,6 +14,7 @@ import { MatchModule } from './match';
 import { ScheduleModule } from '@nestjs/schedule';
 import { DiscoveryModule } from './discovery';
 import { SavedJobsModule } from './saved-jobs';
+import { UsersModule } from './users';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { SavedJobsModule } from './saved-jobs';
     ScheduleModule.forRoot(),
     DiscoveryModule,
     SavedJobsModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

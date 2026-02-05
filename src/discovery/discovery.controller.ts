@@ -1,4 +1,5 @@
 import { Controller, Post, Get, Body, Logger } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Company } from '../companies/schemas/company.schema';
@@ -7,6 +8,21 @@ import { UniversalIngestionService } from './universal-ingestion.service';
 import { CompanyDiscoveryAgent } from './company-discovery.agent';
 import { seedCompanies } from './seed-companies';
 
+class DiscoverCompaniesDto {
+    query?: string;
+    count?: number;
+}
+
+class IngestCompanyDto {
+    companyName?: string;
+    homepageUrl?: string;
+}
+
+class RunDiscoveryDto {
+    targetSuccessful?: number;
+}
+
+@ApiTags('Discovery')
 @Controller('discovery')
 export class DiscoveryController {
     private readonly logger = new Logger(DiscoveryController.name);
@@ -18,19 +34,18 @@ export class DiscoveryController {
         private readonly companyDiscoveryAgent: CompanyDiscoveryAgent,
     ) { }
 
-    /**
-     * Seed companies from the predefined list (fallback)
-     */
     @Post('seed')
+    @ApiOperation({ summary: 'Seed companies from predefined list' })
+    @ApiResponse({ status: 200, description: 'Companies seeded successfully' })
     async seedCompaniesEndpoint() {
         const count = await this.universalIngestion.seedCompanies(seedCompanies);
         return { message: `Seeded ${count} new companies`, total: seedCompanies.length };
     }
 
-    /**
-     * Discover companies using AI agent (from YC, LLM queries, etc.)
-     */
     @Post('discover-companies')
+    @ApiOperation({ summary: 'Discover companies using AI agent' })
+    @ApiBody({ type: DiscoverCompaniesDto })
+    @ApiResponse({ status: 200, description: 'Returns discovered companies' })
     async discoverCompaniesEndpoint(@Body() body: { query?: string; count?: number }) {
         const count = body.count || 30;
         const logs: Array<{
@@ -86,10 +101,10 @@ export class DiscoveryController {
         };
     }
 
-    /**
-     * Trigger job discovery for a specific company
-     */
     @Post('ingest')
+    @ApiOperation({ summary: 'Trigger job discovery for a specific company' })
+    @ApiBody({ type: IngestCompanyDto })
+    @ApiResponse({ status: 200, description: 'Returns ingested jobs' })
     async ingestCompany(@Body() body: { companyName?: string; homepageUrl?: string }) {
         let company: Company | null = null;
 
@@ -121,11 +136,10 @@ export class DiscoveryController {
         };
     }
 
-    /**
-     * Run discovery until we find 10 companies with jobs
-     * Returns detailed logs for each company processed
-     */
     @Post('run')
+    @ApiOperation({ summary: 'Run discovery until target companies with jobs are found' })
+    @ApiBody({ type: RunDiscoveryDto })
+    @ApiResponse({ status: 200, description: 'Returns discovery results and logs' })
     async runDiscovery(@Body() body: { targetSuccessful?: number }) {
         const targetSuccessful = body.targetSuccessful || 10;
 
@@ -224,10 +238,9 @@ export class DiscoveryController {
         };
     }
 
-    /**
-     * Get discovery status
-     */
     @Get('status')
+    @ApiOperation({ summary: 'Get discovery status' })
+    @ApiResponse({ status: 200, description: 'Returns discovery statistics' })
     async getStatus() {
         const totalCompanies = await this.companyModel.countDocuments();
         const companiesWithCareerPage = await this.companyModel.countDocuments({ careerPageUrl: { $ne: null } });
@@ -243,10 +256,9 @@ export class DiscoveryController {
         };
     }
 
-    /**
-     * Cleanup: Delete companies with 0 jobs and old jobs
-     */
     @Post('cleanup')
+    @ApiOperation({ summary: 'Cleanup old jobs and empty companies' })
+    @ApiResponse({ status: 200, description: 'Returns cleanup results' })
     async cleanup() {
         this.logger.log('Starting manual cleanup');
 

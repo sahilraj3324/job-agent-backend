@@ -1,9 +1,10 @@
-import { Controller, Post, Body, Param } from '@nestjs/common';
+import { Controller, Post, Body, Param, NotFoundException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { MatchingService, MatchExplanationService } from '../agents/matching';
 import { JobsService } from '../jobs/jobs.service';
 import { CandidatesService } from '../candidates/candidates.service';
 
-export interface MatchRequestDto {
+class MatchRequestDto {
     jobId: string;
     topK?: number;
     minScore?: number;
@@ -21,6 +22,7 @@ export interface MatchResultDto {
     };
 }
 
+@ApiTags('Match')
 @Controller('match')
 export class MatchController {
     constructor(
@@ -31,6 +33,9 @@ export class MatchController {
     ) { }
 
     @Post()
+    @ApiOperation({ summary: 'Match candidates to a job' })
+    @ApiBody({ type: MatchRequestDto })
+    @ApiResponse({ status: 200, description: 'Returns ranked candidate matches' })
     async matchCandidates(@Body() dto: MatchRequestDto): Promise<MatchResultDto[]> {
         const job = await this.jobsService.getJob(dto.jobId);
         // job is now the Document, so it has embedding
@@ -59,6 +64,11 @@ export class MatchController {
     }
 
     @Post(':jobId/explain/:candidateId')
+    @ApiOperation({ summary: 'Get detailed explanation of a match' })
+    @ApiParam({ name: 'jobId', description: 'Job ID' })
+    @ApiParam({ name: 'candidateId', description: 'Candidate ID' })
+    @ApiResponse({ status: 200, description: 'Returns match explanation' })
+    @ApiResponse({ status: 404, description: 'Job or candidate not found' })
     async explainMatch(
         @Param('jobId') jobId: string,
         @Param('candidateId') candidateId: string,
@@ -67,7 +77,7 @@ export class MatchController {
 
         const candidate = this.candidatesService.getCandidate(candidateId);
         if (!candidate) {
-            throw new Error(`Candidate not found: ${candidateId}`);
+            throw new NotFoundException(`Candidate not found: ${candidateId}`);
         }
 
         const explanation = await this.matchExplanation.explain(

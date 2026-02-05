@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Get, Param, Query, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { ParsedResume } from '../agents/resume-parser';
 import { ResumeAnalysis } from '../agents/resume-analyzer';
 import { CandidatesService } from './candidates.service';
@@ -8,11 +9,11 @@ import { CandidatesService } from './candidates.service';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const pdfParse = require('pdf-parse');
 
-export interface UploadResumeDto {
+class UploadResumeDto {
     text: string;
 }
 
-export interface AnalyzeResumeDto {
+class AnalyzeResumeDto {
     text: string;
 }
 
@@ -30,6 +31,7 @@ export interface AnalyzeAndMatchResponse {
     matchingJobs: any[];
 }
 
+@ApiTags('Candidates')
 @Controller('candidates')
 export class CandidatesController {
     constructor(
@@ -37,17 +39,37 @@ export class CandidatesController {
     ) { }
 
     @Post()
+    @ApiOperation({ summary: 'Upload and parse a resume' })
+    @ApiBody({ type: UploadResumeDto })
+    @ApiResponse({ status: 201, description: 'Candidate created successfully' })
+    @ApiResponse({ status: 400, description: 'Text is required' })
     async uploadResume(@Body() dto: UploadResumeDto): Promise<CandidateResponse> {
+        if (!dto || !dto.text) {
+            throw new BadRequestException('Text is required');
+        }
         return this.candidatesService.createCandidate(dto.text);
     }
 
     @Post('analyze')
+    @ApiOperation({ summary: 'Analyze a resume for improvements' })
+    @ApiBody({ type: AnalyzeResumeDto })
+    @ApiResponse({ status: 200, description: 'Resume analysis result' })
+    @ApiResponse({ status: 400, description: 'Text is required' })
     async analyzeResume(@Body() dto: AnalyzeResumeDto): Promise<ResumeAnalysis> {
+        if (!dto || !dto.text) {
+            throw new BadRequestException('Text is required');
+        }
         return this.candidatesService.analyzeResume(dto.text);
     }
 
     @Post('upload-pdf')
     @UseInterceptors(FileInterceptor('file'))
+    @ApiOperation({ summary: 'Upload PDF resume, analyze, and find matching jobs' })
+    @ApiConsumes('multipart/form-data')
+    @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
+    @ApiQuery({ name: 'topK', required: false, description: 'Number of top matching jobs to return' })
+    @ApiResponse({ status: 200, description: 'Resume analyzed and jobs matched' })
+    @ApiResponse({ status: 400, description: 'No file uploaded or invalid file type' })
     async uploadPdfResume(
         @UploadedFile() file: Express.Multer.File,
         @Query('topK') topK?: string,
@@ -97,10 +119,17 @@ export class CandidatesController {
     }
 
     @Post('analyze-and-match')
+    @ApiOperation({ summary: 'Analyze resume text and find matching jobs' })
+    @ApiBody({ type: AnalyzeResumeDto })
+    @ApiQuery({ name: 'topK', required: false, description: 'Number of top matching jobs' })
+    @ApiResponse({ status: 200, description: 'Resume analyzed and jobs matched' })
     async analyzeAndMatch(
         @Body() dto: AnalyzeResumeDto,
         @Query('topK') topK?: string,
     ): Promise<AnalyzeAndMatchResponse> {
+        if (!dto || !dto.text) {
+            throw new BadRequestException('Text is required');
+        }
         // First create the candidate (parses resume and creates embedding)
         const candidate = await this.candidatesService.createCandidate(dto.text);
 
@@ -122,16 +151,25 @@ export class CandidatesController {
     }
 
     @Get()
+    @ApiOperation({ summary: 'Get all candidates' })
+    @ApiResponse({ status: 200, description: 'Returns list of all candidates' })
     async getAllCandidates(): Promise<Omit<CandidateResponse, 'embedding'>[]> {
         return this.candidatesService.getAllCandidates();
     }
 
     @Get(':id')
+    @ApiOperation({ summary: 'Get candidate by ID' })
+    @ApiParam({ name: 'id', description: 'Candidate ID' })
+    @ApiResponse({ status: 200, description: 'Returns candidate details' })
     async getCandidate(@Param('id') id: string): Promise<CandidateResponse | null> {
         return this.candidatesService.getCandidate(id) || null;
     }
 
     @Get(':id/match-jobs')
+    @ApiOperation({ summary: 'Get matching jobs for a candidate' })
+    @ApiParam({ name: 'id', description: 'Candidate ID' })
+    @ApiQuery({ name: 'topK', required: false, description: 'Number of top matching jobs' })
+    @ApiResponse({ status: 200, description: 'Returns matching jobs' })
     async getMatchingJobs(
         @Param('id') id: string,
         @Query('topK') topK?: string,

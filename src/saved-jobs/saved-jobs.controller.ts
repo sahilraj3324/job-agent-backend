@@ -1,18 +1,34 @@
-import { Controller, Post, Delete, Get, Patch, Body, Param, Query } from '@nestjs/common';
+import { Controller, Post, Delete, Get, Patch, Body, Param, Query, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { SavedJobsService } from './saved-jobs.service';
 
+class SaveJobDto {
+    userId: string;
+    jobId: string;
+    notes?: string;
+}
+
+class UpdateNotesDto {
+    userId: string;
+    notes: string;
+}
+
+@ApiTags('Saved Jobs')
 @Controller('saved-jobs')
 export class SavedJobsController {
     constructor(private readonly savedJobsService: SavedJobsService) { }
 
-    /**
-     * Save a job
-     * POST /saved-jobs
-     */
     @Post()
+    @ApiOperation({ summary: 'Save a job for a user' })
+    @ApiBody({ type: SaveJobDto })
+    @ApiResponse({ status: 201, description: 'Job saved successfully' })
+    @ApiResponse({ status: 400, description: 'Invalid request' })
     async saveJob(
         @Body() body: { userId: string; jobId: string; notes?: string },
     ) {
+        if (!body || !body.userId || !body.jobId) {
+            throw new BadRequestException('userId and jobId are required');
+        }
         const saved = await this.savedJobsService.saveJob(
             body.userId,
             body.jobId,
@@ -24,11 +40,11 @@ export class SavedJobsController {
         };
     }
 
-    /**
-     * Unsave a job
-     * DELETE /saved-jobs/:jobId?userId=xxx
-     */
     @Delete(':jobId')
+    @ApiOperation({ summary: 'Unsave a job for a user' })
+    @ApiParam({ name: 'jobId', description: 'Job ID to unsave' })
+    @ApiQuery({ name: 'userId', required: true, description: 'User ID' })
+    @ApiResponse({ status: 200, description: 'Job unsaved successfully' })
     async unsaveJob(
         @Param('jobId') jobId: string,
         @Query('userId') userId: string,
@@ -37,11 +53,10 @@ export class SavedJobsController {
         return { message: 'Job unsaved successfully' };
     }
 
-    /**
-     * Get all saved jobs for a user
-     * GET /saved-jobs?userId=xxx
-     */
     @Get()
+    @ApiOperation({ summary: 'Get all saved jobs for a user' })
+    @ApiQuery({ name: 'userId', required: true, description: 'User ID' })
+    @ApiResponse({ status: 200, description: 'Returns list of saved jobs' })
     async getSavedJobs(@Query('userId') userId: string) {
         const savedJobs = await this.savedJobsService.getSavedJobs(userId);
         return {
@@ -50,11 +65,11 @@ export class SavedJobsController {
         };
     }
 
-    /**
-     * Check if a job is saved
-     * GET /saved-jobs/check/:jobId?userId=xxx
-     */
     @Get('check/:jobId')
+    @ApiOperation({ summary: 'Check if a job is saved by a user' })
+    @ApiParam({ name: 'jobId', description: 'Job ID' })
+    @ApiQuery({ name: 'userId', required: true, description: 'User ID' })
+    @ApiResponse({ status: 200, description: 'Returns save status' })
     async isJobSaved(
         @Param('jobId') jobId: string,
         @Query('userId') userId: string,
@@ -63,11 +78,11 @@ export class SavedJobsController {
         return { isSaved };
     }
 
-    /**
-     * Update notes for a saved job
-     * PATCH /saved-jobs/:jobId
-     */
     @Patch(':jobId')
+    @ApiOperation({ summary: 'Update notes for a saved job' })
+    @ApiParam({ name: 'jobId', description: 'Job ID' })
+    @ApiBody({ type: UpdateNotesDto })
+    @ApiResponse({ status: 200, description: 'Notes updated successfully' })
     async updateNotes(
         @Param('jobId') jobId: string,
         @Body() body: { userId: string; notes: string },
