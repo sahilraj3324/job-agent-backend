@@ -39,6 +39,7 @@ export interface UserResponse {
     phone?: string;
     experience: Experience[];
     projects: Project[];
+    profilePicture?: string;
     createdAt: Date;
     updatedAt: Date;
 }

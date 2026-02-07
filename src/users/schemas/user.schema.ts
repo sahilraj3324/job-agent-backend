@@ -33,7 +33,7 @@ export class User extends Document {
     @Prop({ required: true, unique: true })
     email: string;
 
-    @Prop({ required: true, select: false })
+    @Prop({ select: false })
     password: string;
 
     @Prop()
@@ -44,6 +44,12 @@ export class User extends Document {
 
     @Prop({ type: [Object], default: [] })
     projects: Project[];
+
+    @Prop({ unique: true, sparse: true })
+    googleId: string;
+
+    @Prop()
+    profilePicture: string;
 
     @Prop()
     createdAt: Date;

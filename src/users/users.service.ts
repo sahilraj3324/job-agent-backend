@@ -1,9 +1,17 @@
-import { Injectable, NotFoundException, ConflictException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, UnauthorizedException, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { User } from './schemas/user.schema';
 import { RegisterUserDto, LoginUserDto, UpdateUserDto, UserResponse, LoginResponse } from './dto';
+
+export interface GoogleUserDto {
+    googleId: string;
+    email: string;
+    fullName: string;
+    profilePicture?: string;
+}
 
 @Injectable()
 export class UsersService {
@@ -11,9 +19,11 @@ export class UsersService {
 
     constructor(
         @InjectModel(User.name) private readonly userModel: Model<User>,
+        @Inject(forwardRef(() => JwtService))
+        private readonly jwtService: JwtService,
     ) { }
 
-    async register(dto: RegisterUserDto): Promise<UserResponse> {
+    async register(dto: RegisterUserDto): Promise<LoginResponse> {
         // Check if user already exists
         const existingUser = await this.userModel.findOne({ email: dto.email }).exec();
         if (existingUser) {
@@ -29,7 +39,12 @@ export class UsersService {
             password: hashedPassword,
         });
 
-        return this.toUserResponse(user);
+        // Return user with JWT token
+        const token = this.generateJwtToken(user);
+        return {
+            user: this.toUserResponse(user),
+            token,
+        };
     }
 
     async login(dto: LoginUserDto): Promise<LoginResponse> {
@@ -43,19 +58,68 @@ export class UsersService {
             throw new UnauthorizedException('Invalid email or password');
         }
 
+        // Check if user has a password (not a Google-only account)
+        if (!user.password) {
+            throw new UnauthorizedException('This account uses Google login. Please sign in with Google.');
+        }
+
         // Verify password
         const isPasswordValid = await bcrypt.compare(dto.password, user.password);
         if (!isPasswordValid) {
             throw new UnauthorizedException('Invalid email or password');
         }
 
-        // Generate simple token (for production, use JWT)
-        const token = this.generateToken(user._id.toString());
+        // Generate JWT token
+        const token = this.generateJwtToken(user);
 
         return {
             user: this.toUserResponse(user),
             token,
         };
+    }
+
+    async findOrCreateByGoogle(googleUser: GoogleUserDto): Promise<UserResponse> {
+        // Check if user exists by googleId
+        let user = await this.userModel.findOne({ googleId: googleUser.googleId }).exec();
+
+        if (user) {
+            // Update profile picture if changed
+            if (googleUser.profilePicture && user.profilePicture !== googleUser.profilePicture) {
+                user.profilePicture = googleUser.profilePicture;
+                await user.save();
+            }
+            return this.toUserResponse(user);
+        }
+
+        // Check if user exists by email (link accounts)
+        user = await this.userModel.findOne({ email: googleUser.email }).exec();
+
+        if (user) {
+            // Link Google account to existing user
+            user.googleId = googleUser.googleId;
+            user.profilePicture = googleUser.profilePicture || user.profilePicture;
+            await user.save();
+            return this.toUserResponse(user);
+        }
+
+        // Create new user
+        user = await this.userModel.create({
+            googleId: googleUser.googleId,
+            email: googleUser.email,
+            fullName: googleUser.fullName,
+            profilePicture: googleUser.profilePicture,
+        });
+
+        return this.toUserResponse(user);
+    }
+
+    generateJwtToken(user: User | UserResponse): string {
+        const userId = (user as any)._id?.toString() || (user as UserResponse).id;
+        const payload = {
+            sub: userId,
+            email: user.email,
+        };
+        return this.jwtService.sign(payload);
     }
 
     async findAll(): Promise<UserResponse[]> {
@@ -103,7 +167,7 @@ export class UsersService {
         return { deleted: true, count: result.deletedCount };
     }
 
-    private toUserResponse(user: User): UserResponse {
+    toUserResponse(user: User): UserResponse {
         return {
             id: user._id.toString(),
             fullName: user.fullName,
@@ -114,13 +178,9 @@ export class UsersService {
             phone: user.phone,
             experience: user.experience || [],
             projects: user.projects || [],
+            profilePicture: user.profilePicture,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
         };
-    }
-
-    private generateToken(userId: string): string {
-        // Simple token for demo - in production use proper JWT
-        return Buffer.from(`${userId}:${Date.now()}`).toString('base64');
     }
 }
