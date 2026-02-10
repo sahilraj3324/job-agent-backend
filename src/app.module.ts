@@ -9,8 +9,6 @@ import { EmbeddingModule } from './agents/embedding';
 import { MatchingModule } from './agents/matching';
 import { DatabaseModule } from './database';
 import { JobsModule } from './jobs';
-import { CandidatesModule } from './candidates';
-import { MatchModule } from './match';
 import { ScheduleModule } from '@nestjs/schedule';
 import { DiscoveryModule } from './discovery';
 import { SavedJobsModule } from './saved-jobs';
@@ -26,8 +24,6 @@ import { UsersModule } from './users';
     EmbeddingModule,
     MatchingModule,
     JobsModule,
-    CandidatesModule,
-    MatchModule,
     ScheduleModule.forRoot(),
     DiscoveryModule,
     SavedJobsModule,
